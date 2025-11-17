@@ -155,7 +155,7 @@ function GuestHero() {
             to="/tests/complet"
             className="mt-6 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-white hover:bg-orange-600 transition"
           >
-            Découvrir plus →
+            Commencer le test →
           </Link>
         </div>
 

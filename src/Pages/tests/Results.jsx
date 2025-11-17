@@ -230,11 +230,11 @@ function DownloadIcon() {
 
 /* Icônes réseaux pour la modale */
 
-function FacebookIcon() {
+function TikTokIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4">
       <path
-        d="M13 21v-7h2.5l.5-3H13V9.5c0-.9.3-1.5 1.7-1.5H16V5.3C15.6 5.2 14.7 5 13.6 5 11.2 5 9.5 6.3 9.5 9.1V11H7v3h2.5v7H13Z"
+        d="M17.5 7.3c-1.3-.4-2.3-1.4-2.7-2.7h0V4h-2.7v10.2c0 1.5-1.2 2.7-2.7 2.7S6.7 15.7 6.7 14.2c0-1.3.9-2.4 2.2-2.6v-2.8c-2.8.2-5 2.5-5 5.4 0 3 2.4 5.4 5.4 5.4s5.4-2.4 5.4-5.4v-4.5c1 .8 2.2 1.4 3.5 1.4V7.3h-0.2Z"
         fill="white"
       />
     </svg>
@@ -573,7 +573,7 @@ export default function ResultsPage() {
 
               {!isLoggedIn && (
                 <button
-                  onClick={() => navigate("/auth/login")}
+                  onClick={() => navigate("/connexion")}
                   className="mt-2 w-full rounded-xl border border-indigo-200 bg-white py-2.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
                 >
                   Vous avez déjà un compte ? Connectez-vous
@@ -742,17 +742,17 @@ export default function ResultsPage() {
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                  pageUrl
-                )}`}
+                href={`https://www.tiktok.com`}
+                  
+                
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2 rounded-xl bg-[#1877F2] px-4 py-3 text-white hover:bg-[#1666d1]"
+                className="flex items-center gap-2 rounded-xl bg-black px-4 py-3 text-white hover:bg-[#1666d1]"
               >
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/20">
-                  <FacebookIcon />
+                  <TikTokIcon />
                 </span>
-                <span className="text-sm font-medium">Facebook</span>
+                <span className="text-sm font-medium">TikTok</span>
               </a>
 
               <a
