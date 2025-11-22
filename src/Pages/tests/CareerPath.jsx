@@ -424,7 +424,8 @@ export default function CareerPath() {
   const job = useMemo(() => CATALOG[jobId], [jobId]);
 
   const storageKey = `pf.path.${jobId}`;
-  const [validatedFormationIds, setValidatedFormationIds] = useState([]);
+  const [selectedFormationId, setSelectedFormationId] = useState(null);
+  const [validatedFormationId, setValidatedFormationId] = useState(null);
   const [steps, setSteps] = useState([]); // { companyTypeId, step }
   const [lastSavedAt, setLastSavedAt] = useState(null);
 
@@ -439,18 +440,23 @@ export default function CareerPath() {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
       if (saved) {
-        setValidatedFormationIds(saved.validatedFormationIds || []);
+        if (typeof saved.selectedFormationId === "string") {
+          setSelectedFormationId(saved.selectedFormationId);
+        }
+        if (typeof saved.validatedFormationId === "string") {
+          setValidatedFormationId(saved.validatedFormationId);
+        } else if (
+          Array.isArray(saved.validatedFormationIds) &&
+          saved.validatedFormationIds.length > 0
+        ) {
+          // compat ancienne version
+          setValidatedFormationId(saved.validatedFormationIds[0]);
+        }
         setSteps(saved.steps || []);
         if (saved.savedAt) setLastSavedAt(saved.savedAt);
       }
     } catch {}
   }, [job, storageKey]);
-
-  function toggleValidateFormation(id) {
-    setValidatedFormationIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  }
 
   const [toast, setToast] = useState("");
 
@@ -459,9 +465,41 @@ export default function CareerPath() {
     setToast("Étape ajoutée à ton parcours");
   }
 
+  // Modifier une étape (stage/alt/junior/inter)
+  function updateStep(stepIndex, newStep) {
+    setSteps((prev) =>
+      prev.map((s, idx) => (idx === stepIndex ? { ...s, step: newStep } : s))
+    );
+    setToast("Étape mise à jour");
+  }
+
+  // Supprimer une étape
+  function deleteStep(stepIndex) {
+    setSteps((prev) => prev.filter((_, idx) => idx !== stepIndex));
+    setToast("Étape supprimée");
+  }
+
+  // Sélectionner une formation (mais pas encore "validée")
+  function selectFormation(id) {
+    setSelectedFormationId(id);
+    setToast("Formation sélectionnée, tu peux maintenant la valider");
+  }
+
+  // Valider la formation sélectionnée (une seule formation possible)
+  function validateFormation(id) {
+    setValidatedFormationId(id);
+    setToast("Formation validée dans ton parcours");
+  }
+
   function savePath() {
     const now = Date.now();
-    const payload = { validatedFormationIds, steps, savedAt: now, jobId };
+    const payload = {
+      selectedFormationId,
+      validatedFormationId,
+      steps,
+      savedAt: now,
+      jobId,
+    };
     try {
       localStorage.setItem(storageKey, JSON.stringify(payload));
       setLastSavedAt(now);
@@ -500,11 +538,17 @@ export default function CareerPath() {
     senior: "3-5 ans",
   };
 
+  const STEP_OPTIONS = [
+    { value: "stage", label: "Stage" },
+    { value: "alt", label: "Alternance" },
+    { value: "junior", label: "Junior" },
+    { value: "inter", label: "Intermédiaire" },
+  ];
+
   // première formation validée
-  const firstValidatedFormation =
-    validatedFormationIds.length > 0
-      ? job.formations.find((f) => f.id === validatedFormationIds[0])
-      : null;
+  const firstValidatedFormation = validatedFormationId
+    ? job.formations.find((f) => f.id === validatedFormationId)
+    : null;
 
   // états dérivés pour les steps (pour les badges "Validé")
   const hasStageOrAlt = steps.some(
@@ -525,163 +569,173 @@ export default function CareerPath() {
     return map;
   }, [job.companyTypes]);
 
-  /* ------------ étapes du parcours (réutilisées dans le PDF) ------------ */
+  /* ------------ étapes du parcours (réutilisées dans le PDF + UI) ------------ */
 
   const stageCompanySteps = steps
+    .map((s, idx) => ({ ...s, _idx: idx }))
     .filter((s) => s.step === "stage")
-    .map((s, idx) => {
+    .map((s) => {
       const t = companyTypeById[s.companyTypeId];
       if (!t) return null;
       return {
-        key: `stage-company-${idx}-${t.id}`,
+        key: `stage-company-${s._idx}-${t.id}`,
         title: `Stage en ${t.title}`,
         subtitle: t.subtitle,
-        right: DURATIONS.stageFreelance, // 3-6 mois
+        right: DURATIONS.stageFreelance,
         dot: "orange",
         badge: "Sélectionné",
         badgeTone: "orange",
+        editableStepIndex: s._idx,
+        currentStepType: s.step,
+        isCustom: true,
       };
     })
     .filter(Boolean);
 
   const altCompanySteps = steps
+    .map((s, idx) => ({ ...s, _idx: idx }))
     .filter((s) => s.step === "alt")
-    .map((s, idx) => {
+    .map((s) => {
       const t = companyTypeById[s.companyTypeId];
       if (!t) return null;
       return {
-        key: `alt-company-${idx}-${t.id}`,
+        key: `alt-company-${s._idx}-${t.id}`,
         title: `Alternance en ${t.title}`,
         subtitle: t.subtitle,
-        right: DURATIONS.stageAlt, // 6-12 mois
+        right: DURATIONS.stageAlt,
         dot: "orange",
         badge: "Sélectionné",
         badgeTone: "orange",
+        editableStepIndex: s._idx,
+        currentStepType: s.step,
+        isCustom: true,
       };
     })
     .filter(Boolean);
 
   const juniorCompanySteps = steps
+    .map((s, idx) => ({ ...s, _idx: idx }))
     .filter((s) => s.step === "junior")
-    .map((s, idx) => {
+    .map((s) => {
       const t = companyTypeById[s.companyTypeId];
       if (!t) return null;
       return {
-        key: `junior-company-${idx}-${t.id}`,
+        key: `junior-company-${s._idx}-${t.id}`,
         title: `Premier emploi (Junior) - ${t.title}`,
         subtitle: t.subtitle,
         right: DURATIONS.junior,
         dot: "blue",
         badge: "Sélectionné",
         badgeTone: "orange",
+        editableStepIndex: s._idx,
+        currentStepType: s.step,
+        isCustom: true,
       };
     })
     .filter(Boolean);
 
   const interCompanySteps = steps
+    .map((s, idx) => ({ ...s, _idx: idx }))
     .filter((s) => s.step === "inter")
-    .map((s, idx) => {
+    .map((s) => {
       const t = companyTypeById[s.companyTypeId];
       if (!t) return null;
       return {
-        key: `inter-company-${idx}-${t.id}`,
+        key: `inter-company-${s._idx}-${t.id}`,
         title: `Poste intermédiaire - ${t.title}`,
         subtitle: t.subtitle,
         right: DURATIONS.montee,
         dot: "orange",
         badge: "Sélectionné",
         badgeTone: "orange",
+        editableStepIndex: s._idx,
+        currentStepType: s.step,
+        isCustom: true,
       };
     })
     .filter(Boolean);
 
+  const formationInitStep = {
+    key: "formationInit",
+    title: "Formation initiale",
+    subtitle: "Acquérir les bases techniques et théoriques du métier",
+    right: DURATIONS.formationInit,
+    dot: "orange",
+    badge: null,
+  };
+
+  const formationChoisieStep = {
+    key: "formationChoisie",
+    title: firstValidatedFormation?.name || "M2 Data Science (Université)",
+    subtitle: firstValidatedFormation
+      ? `${firstValidatedFormation.kind} · ${firstValidatedFormation.location}`
+      : "Master · France (Sorbonne, PSL, Paris-Saclay…)",
+    right: firstValidatedFormation?.duration || "2 ans",
+    dot: "green",
+    badge: firstValidatedFormation ? "Validé" : null,
+    badgeTone: "green",
+  };
+
+  const genericStageStep = {
+    key: "stageAlt",
+    title: "Premier stage / Alternance",
+    subtitle: "Première expérience professionnelle en entreprise",
+    right: DURATIONS.stageAlt,
+    dot: "blue",
+    badge: null,
+  };
+
+  const freelanceStep = {
+    key: "freelance",
+    title: "Stage en Freelance / Indépendant",
+    subtitle: "Autonomie complète et choix des projets",
+    right: DURATIONS.stageFreelance,
+    dot: "orange",
+    badge: hasFreelanceStage ? "Validé" : null,
+    badgeTone: "green",
+  };
+
+  const juniorStep = {
+    key: "junior",
+    title: "Premier emploi (Junior)",
+    subtitle: "Développer ses compétences sur des projets réels",
+    right: DURATIONS.junior,
+    dot: "blue",
+    badge: hasJunior ? "Validé" : null,
+    badgeTone: "green",
+  };
+
+  const monteeStep = {
+    key: "montee",
+    title: "Montée en compétences",
+    subtitle: "Devenir autonome et expert dans son domaine",
+    right: DURATIONS.montee,
+    dot: "orange",
+    badge: hasInter ? "Validé" : null,
+    badgeTone: "green",
+  };
+
+  const seniorStep = {
+    key: "senior",
+    title: `${job.title} Senior`,
+    subtitle: "Leadership technique et mentorat",
+    right: DURATIONS.senior,
+    dot: "blue",
+    badge: null,
+  };
+
   const timelineSteps = [
-    // 1. Formation initiale
-    {
-      key: "formationInit",
-      title: "Formation initiale",
-      subtitle: "Acquérir les bases techniques et théoriques du métier",
-      right: DURATIONS.formationInit,
-      dot: "orange",
-      badge: null,
-    },
-
-    // 2. Formation choisie (Epitech, 42, etc.)
-    {
-      key: "formationChoisie",
-      title: firstValidatedFormation?.name || "M2 Data Science (Université)",
-      subtitle: firstValidatedFormation
-        ? `${firstValidatedFormation.kind} · ${firstValidatedFormation.location}`
-        : "Master · France (Sorbonne, PSL, Paris-Saclay…)",
-      right: firstValidatedFormation?.duration || "2 ans",
-      dot: "green",
-      badge: firstValidatedFormation ? "Validé" : null,
-      badgeTone: "green",
-    },
-
-    // 3. Premier stage / alternance (générique)
-    {
-      key: "stageAlt",
-      title: "Premier stage / Alternance",
-      subtitle: "Première expérience professionnelle en entreprise",
-      right: DURATIONS.stageAlt,
-      dot: "blue",
-      badge: hasStageOrAlt ? "Validé" : null,
-      badgeTone: "green",
-    },
-
-    // 4. Stages & alternances sélectionnés
+    formationInitStep,
+    formationChoisieStep,
+    ...(hasStageOrAlt ? [] : [genericStageStep]), // on enlève l'étape générique dès qu'il y a un stage/alt
     ...stageCompanySteps,
     ...altCompanySteps,
-
-    // 5. Stage freelance spécifique
-    {
-      key: "freelance",
-      title: "Stage en Freelance / Indépendant",
-      subtitle: "Autonomie complète et choix des projets",
-      right: DURATIONS.stageFreelance,
-      dot: "orange",
-      badge: hasFreelanceStage ? "Validé" : null,
-      badgeTone: "green",
-    },
-
-    // 6. Premier emploi (Junior) générique
-    {
-      key: "junior",
-      title: "Premier emploi (Junior)",
-      subtitle: "Développer ses compétences sur des projets réels",
-      right: DURATIONS.junior,
-      dot: "blue",
-      badge: hasJunior ? "Validé" : null,
-      badgeTone: "green",
-    },
-
-    // 7. Postes junior sélectionnés
+    freelanceStep,
+    juniorStep,
     ...juniorCompanySteps,
-
-    // 8. Montée en compétences générique
-    {
-      key: "montee",
-      title: "Montée en compétences",
-      subtitle: "Devenir autonome et expert dans son domaine",
-      right: DURATIONS.montee,
-      dot: "orange",
-      badge: hasInter ? "Validé" : null,
-      badgeTone: "green",
-    },
-
-    // 9. Postes intermédiaires sélectionnés
+    monteeStep,
     ...interCompanySteps,
-
-    // 10. Senior
-    {
-      key: "senior",
-      title: `${job.title} Senior`,
-      subtitle: "Leadership technique et mentorat",
-      right: DURATIONS.senior,
-      dot: "blue",
-      badge: null,
-    },
+    seniorStep,
   ];
 
   /* ------------ application des filtres formations ------------ */
@@ -812,7 +866,7 @@ export default function CareerPath() {
         y = 80;
       }
 
-      // Pastille
+      // Pastille (on garde le même orange dans le PDF)
       doc.setFillColor(255, 122, 89);
       doc.circle(marginX + 4, y - 4, 3, "F");
 
@@ -918,20 +972,38 @@ export default function CareerPath() {
           <div className="text-lg font-semibold">{job.title}</div>
           <div className="text-sm text-gray-600">{job.badge}</div>
         </div>
-        <button
-          onClick={savePath}
-          className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-white hover:bg-orange-600"
-        >
-          <span className="inline-block h-5 w-5 rounded-md bg-white/25 grid place-items-center">
-            <svg viewBox="0 0 24 24" className="h-4 w-4">
-              <path
-                d="M17 3H7a2 2 0 0 0-2 2v14h14V7l-2-4Z"
-                fill="currentColor"
-              />
-            </svg>
-          </span>
-          Enregistrer
-        </button>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate("/profil")}
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-800 hover:bg-gray-50"
+          >
+            <span className="inline-block h-5 w-5 rounded-md bg-gray-100 grid place-items-center">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
+                <path
+                  d="M12 2a5 5 0 0 1 5 5c0 2.76-2.24 5-5 5s-5-2.24-5-5a5 5 0 0 1 5-5Zm0 12c3.31 0 6 2.24 6 5v1H6v-1c0-2.76 2.69-5 6-5Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </span>
+            Profil
+          </button>
+
+          <button
+            onClick={savePath}
+            className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-white hover:bg-orange-600"
+          >
+            <span className="inline-block h-5 w-5 rounded-md bg-white/25 grid place-items-center">
+              <svg viewBox="0 0 24 24" className="h-4 w-4">
+                <path
+                  d="M17 3H7a2 2 0 0 0-2 2v14h14V7l-2-4Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </span>
+            Enregistrer
+          </button>
+        </div>
       </div>
 
       {/* Filtres */}
@@ -1051,49 +1123,106 @@ export default function CareerPath() {
             className="pointer-events-none absolute left-9 top-0 bottom-0 w-[3px] bg-gradient-to-b from-orange-400 via-blue-400 to-orange-400"
           />
 
-          {timelineSteps.map((step) => (
-            <li key={step.key} className="relative pl-16 md:pl-20">
-              <span
-                aria-hidden
-                className={[
-                  "absolute left-6 top-[2px] h-6 w-6 rounded-full bg-white border-[5px]",
-                  step.dot === "orange" && "border-orange-300",
-                  step.dot === "blue" && "border-blue-300",
-                  step.dot === "green" && "border-green-500 bg-green-500",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              />
+          {timelineSteps.map((step) => {
+            const isCustom = !!step.isCustom;
 
-              <div className="flex items-start justify-between gap-8 ml-0">
-                <div className="flex-1">
-                  <div className="font-semibold text-lg">{step.title}</div>
-                  <div className="text-gray-600 text-sm">
-                    {step.subtitle}
+            let dotColorClass = "";
+            if (step.dot === "orange") {
+              dotColorClass =
+                step.key === "formationInit"
+                  ? "border-orange-500"
+                  : "border-orange-300";
+            } else if (step.dot === "blue") {
+              dotColorClass = "border-blue-300";
+            } else if (step.dot === "green") {
+              dotColorClass = "border-green-500 bg-green-500";
+            }
+
+            return (
+              <li key={step.key} className="relative pl-16 md:pl-20">
+                <span
+                  aria-hidden
+                  className={[
+                    "absolute left-6 top-[2px] h-6 w-6 rounded-full bg-white border-[5px]",
+                    dotColorClass,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                />
+
+                <div
+                  className={[
+                    "flex items-start justify-between gap-8 ml-0",
+                    isCustom
+                      ? "rounded-2xl border border-orange-100 bg-orange-50/40 px-4 py-3"
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`font-semibold ${
+                          isCustom ? "text-base" : "text-lg"
+                        }`}
+                      >
+                        {step.title}
+                      </div>
+                      {step.badge && (
+                        <span
+                          className={[
+                            "inline-flex items-center rounded-full text-xs px-2 py-0.5",
+                            step.badgeTone === "orange"
+                              ? "bg-orange-100 text-orange-700"
+                              : "bg-green-100 text-green-700",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                        >
+                          {step.badge}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-gray-600 text-sm">
+                      {step.subtitle}
+                    </div>
+
+                    {/* Boutons modifier / supprimer pour les étapes éditables */}
+                    {typeof step.editableStepIndex === "number" && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                        <span className="text-gray-500">Étape :</span>
+                        <select
+                          className="rounded-lg border bg-white px-2 py-1 text-xs"
+                          value={step.currentStepType}
+                          onChange={(e) =>
+                            updateStep(step.editableStepIndex, e.target.value)
+                          }
+                        >
+                          {STEP_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => deleteStep(step.editableStepIndex)}
+                          className="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs text-red-700 hover:bg-red-100"
+                        >
+                          Supprimer
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {step.badge && (
-                    <span
-                      className={[
-                        "mt-1 inline-block rounded-full text-xs px-2 py-0.5",
-                        step.badgeTone === "orange"
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-green-100 text-green-700",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                    >
-                      {step.badge}
-                    </span>
-                  )}
+                  <span className="shrink-0 rounded-full bg-gray-100 text-gray-700 text-xs px-3 py-1">
+                    {step.right}
+                  </span>
                 </div>
-
-                <span className="shrink-0 rounded-full bg-gray-100 text-gray-700 text-xs px-3 py-1">
-                  {step.right}
-                </span>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       </section>
 
@@ -1114,20 +1243,25 @@ export default function CareerPath() {
           )}
 
           {filteredFormations.map((f) => {
-            const validated = validatedFormationIds.includes(f.id);
+            const isValidated = validatedFormationId === f.id;
+            const isSelected = selectedFormationId === f.id;
+
             return (
               <div
                 key={f.id}
                 className="rounded-2xl border-2 border-orange-300 bg-orange-50/40 p-0 overflow-hidden"
               >
                 <div className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className="text-lg font-semibold">{f.name}</div>
-                    {validated && (
-                      <span className="inline-flex items-center gap-1 text-green-600">
-                        <Check /> Validée
-                      </span>
-                    )}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="text-lg font-semibold">{f.name}</div>
+                      {isValidated && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
+                          <Check />
+                          Validé
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="mt-2 inline-flex items-center gap-2">
                     <Badge>{f.kind}</Badge>
@@ -1174,18 +1308,25 @@ export default function CareerPath() {
                 </div>
 
                 <div className="px-5 pb-5">
-                  {validated ? (
+                  {isValidated ? (
                     <div className="rounded-xl bg-green-200/70 text-green-900 px-4 py-3 font-medium grid place-items-center">
                       <span className="inline-flex items-center gap-2">
                         <Check /> Formation validée
                       </span>
                     </div>
-                  ) : (
+                  ) : isSelected ? (
                     <button
-                      onClick={() => toggleValidateFormation(f.id)}
+                      onClick={() => validateFormation(f.id)}
                       className="w-full rounded-xl bg-orange-500 text-white py-3 font-medium hover:bg-orange-600"
                     >
                       Valider cette formation
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => selectFormation(f.id)}
+                      className="w-full rounded-xl border border-blue-500 text-blue-600 py-3 font-medium bg-white hover:bg-blue-50"
+                    >
+                      Sélectionner
                     </button>
                   )}
                 </div>
@@ -1195,14 +1336,86 @@ export default function CareerPath() {
         </div>
       </section>
 
-      {/* Types d’entreprises */}
+      {/* Les étapes de ton parcours + Types d’entreprises */}
       <section className="mt-10">
         <div className="text-gray-900 font-semibold">
           Types d&apos;entreprises
         </div>
         <p className="text-sm text-gray-600">
-          Ajoute-les à une étape : <b>Stage</b>, <b>Alternance</b>,{" "}
+          Choisis le type d&apos;entreprise qui correspond à tes aspirations.
+          Tu peux ajouter chaque type à différentes étapes de ton parcours :
+          <b> Stage</b> (courte durée), <b>Alternance</b> (formation longue),{" "}
           <b>Junior</b> ou <b>Intermédiaire</b>.
+        </p>
+
+        {/* Bloc "Les étapes de ton parcours" */}
+        <div className="mt-4 rounded-2xl bg-gradient-to-r from-indigo-50 via-orange-50 to-pink-50 p-5 border border-orange-100">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">🎓</span>
+            <div className="font-semibold text-gray-900">
+              Les étapes de ton parcours professionnel
+            </div>
+          </div>
+          <div className="grid md:grid-cols-4 gap-4 text-sm text-gray-800">
+            <div>
+              <div className="flex items-center gap-2 font-semibold mb-1">
+                <span className="h-2 w-2 rounded-full bg-blue-500" />
+                Stage
+              </div>
+              <ul className="list-disc ml-5 space-y-1">
+                <li>Durée : 3 à 6 mois</li>
+                <li>Découverte du métier</li>
+                <li>Mission ponctuelle</li>
+                <li>Gratification minimum</li>
+                <li>Pendant les études</li>
+              </ul>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 font-semibold mb-1">
+                <span className="h-2 w-2 rounded-full bg-orange-500" />
+                Alternance
+              </div>
+              <ul className="list-disc ml-5 space-y-1">
+                <li>Durée : 1 à 2 ans</li>
+                <li>Formation diplômante</li>
+                <li>Contrat pro / apprentissage</li>
+                <li>Rémunération complète</li>
+                <li>Frais de formation pris en charge</li>
+              </ul>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 font-semibold mb-1">
+                <span className="h-2 w-2 rounded-full bg-green-500" />
+                Junior
+              </div>
+              <ul className="list-disc ml-5 space-y-1">
+                <li>Durée : 1 à 2 ans</li>
+                <li>Premier emploi (CDI/CDD)</li>
+                <li>Accompagnement &amp; formation</li>
+                <li>Salaire : 28k–40k€/an</li>
+                <li>Développer autonomie</li>
+              </ul>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 font-semibold mb-1">
+                <span className="h-2 w-2 rounded-full bg-purple-500" />
+                Intermédiaire
+              </div>
+              <ul className="list-disc ml-5 space-y-1">
+                <li>Durée : 2 à 3 ans</li>
+                <li>Poste confirmé</li>
+                <li>Autonomie complète</li>
+                <li>Salaire : 40k–55k€/an</li>
+                <li>Mentorat &amp; leadership</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-4 text-sm text-gray-600">
+          Ajoute-les à une étape : <b>Stage</b>, <b>Alternance</b>, <b>Junior</b>{" "}
+          ou <b>Intermédiaire</b>. Tu peux ensuite gérer les étapes directement
+          dans le parcours ci-dessus.
         </p>
 
         <div className="mt-5 space-y-8">

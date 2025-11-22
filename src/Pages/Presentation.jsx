@@ -47,15 +47,15 @@ export default function Presentation() {
 
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <div className="text-blue-500 text-3xl mb-3">💬</div>
-            <h3 className="font-semibold">Assistant IA</h3>
+            <h3 className="font-semibold">Recommandation des méties</h3>
             <p className="mt-2 text-sm text-gray-600">
-              Conseils personnalisés et accompagnement
+              Retrouve les méties personnalisés adaptés a ton profil
             </p>
           </div>
 
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <div className="text-green-500 text-3xl mb-3">🎓</div>
-            <h3 className="font-semibold">Formations détaillées</h3>
+            <h3 className="font-semibold">Parcours détaillées</h3>
             <p className="mt-2 text-sm text-gray-600">
               Parcours complets selon vos objectifs
             </p>

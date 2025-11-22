@@ -73,10 +73,10 @@ export default function Home() {
               </span>
             )}
             <Link
-              to="/tests/complet"
+              to="/connexion"
               className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
             >
-              Commencer le test
+              Se connecter
             </Link>
             <Link
               to={isLoggedIn ? "/profil" : "/login"}
@@ -194,16 +194,14 @@ function LoggedInHero({ displayName, progress, testsCompleted, jobsExplored }) {
         <div className="self-center">
           <h1 className="text-3xl md:text-4xl font-semibold leading-tight">Continue ton parcours</h1>
           <p className="mt-3 text-gray-600">
-            Accède à ton profil, tes résultats et explore de nouveaux métiers.
+            Découvre ton profil, tes résultats et explore de nouveaux métiers.
           </p>
 
           <div className="mt-5 flex items-center gap-3">
-            <Link to="/profil" className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-white hover:bg-orange-600">
-              Mon profil →
+            <Link to="/tests/complet" className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-white hover:bg-orange-600">
+              Commancer le test
             </Link>
-            <Link to="/metiers" className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 hover:bg-gray-50">
-              Voir les métiers
-            </Link>
+          
           </div>
 
           {/* Progression */}
@@ -298,6 +296,8 @@ function HowItWorks() {
     { step: 1, title: "Réponds au questionnaire", desc: "Prends 15-20 min pour répondre honnêtement aux questions." },
     { step: 2, title: "Découvre ton profil", desc: "Obtiens immédiatement ton profil détaillé." },
     { step: 3, title: "Explore les métiers recommandés", desc: "Consulte les métiers les plus compatibles avec toi." },
+    { step: 4, title: "Découvrez ton  parcours", desc: "Explorez le parcours du métier que tu as  choisi." },
+
   ];
 
   return (

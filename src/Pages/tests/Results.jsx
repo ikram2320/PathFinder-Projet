@@ -552,7 +552,7 @@ export default function ResultsPage() {
             </div>
 
             <ul className="px-5 pb-0 text-sm text-indigo-900 space-y-2">
-              <li>• 8 métiers recommandés (au lieu de 3)</li>
+              <li>• Plus de métiers recommandés (au lieu de 3)</li>
               <li>• Descriptions complètes + parcours détaillés</li>
               <li>• Recommandations d’écoles et établissements</li>
               <li>• Synthèse PDF personnalisée</li>

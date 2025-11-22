@@ -195,8 +195,8 @@ export default function RecommendedJobs() {
       <header className="h-14 border-b border-gray-100 flex items-center justify-between px-4">
         <button onClick={() => navigate(-1)} className="text-sm text-gray-600 hover:text-gray-800">← Retour</button>
         <div className="text-sm font-medium">Métiers Recommandés</div>
-        <Link to="/formations" className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50">
-          Formations
+        <Link to="/home" className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50">
+          commencer a explorer
         </Link>
       </header>
 

@@ -96,7 +96,7 @@ export default function GuidedTour() {
               <span className="text-sm text-gray-400">2</span>
             </div>
             <button
-              onClick={() => navigate("/tests/rapide/1")} // début du test
+              onClick={() => navigate("/tests/complet")} // début du test
               className="mt-4 text-sm text-orange-500 font-medium inline-flex items-center gap-1"
             >
               Cliquez pour commencer
@@ -137,26 +137,24 @@ export default function GuidedTour() {
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
                 <div className="h-10 w-10 rounded-full bg-orange-500 grid place-items-center text-white">
-                  💬
+                🎓
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="font-semibold text-gray-900">
-                      Utiliser l&apos;assistant IA
+                      Découvrez votre parcours
                     </h2>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-600 text-white">
-                      Optionnel
-                    </span>
+                    
                   </div>
                   <p className="mt-2 text-sm text-gray-600">
-                    Posez vos questions à notre assistant pour des conseils personnalisés
+                    Un parcours sur mesure, pensé pour guider tes choix et façonner ton avenir.
                   </p>
                 </div>
               </div>
               <span className="text-sm text-gray-400">5</span>
             </div>
             <button
-              onClick={() => navigate("/assistant")}
+              onClick={() => navigate("/home")}
               className="mt-4 text-sm text-orange-500 font-medium inline-flex items-center gap-1"
             >
               Cliquez pour commencer
@@ -190,7 +188,7 @@ export default function GuidedTour() {
         {/* Bouton final */}
         <div className="mt-8 flex justify-center">
           <button
-            onClick={() => navigate("/tests/complet")} // change le chemin si besoin
+            onClick={() => navigate("/home")} // change le chemin si besoin
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white border border-gray-200 shadow-sm text-sm font-medium hover:bg-gray-50 transition"
           >
             Commencer à explorer

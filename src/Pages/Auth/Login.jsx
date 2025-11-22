@@ -133,7 +133,7 @@ export default function Login() {
 
           {/* Continuer sans compte */}
           <button
-            onClick={() => navigate("/tests/rapide/1")}
+            onClick={() => navigate("/home")}
             className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium hover:bg-gray-50 transition"
           >
             Continuer sans compte
